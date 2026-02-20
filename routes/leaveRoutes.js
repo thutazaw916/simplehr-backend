@@ -1,12 +1,22 @@
 const express = require('express');
 const router = express.Router();
-const { requestLeave, getMyLeaves, getAllLeaves, approveLeave, rejectLeave } = require('../controllers/leaveController');
-const { protect } = require('../middleware/auth');
+const { protect } = require('../middleware/authMiddleware');
+const {
+  requestLeave,
+  getMyLeaves,
+  getLeaveBalance,
+  getAllLeaves,
+  approveLeave,
+  rejectLeave
+} = require('../controllers/leaveController');
 
-router.post('/', protect, requestLeave);
-router.get('/my', protect, getMyLeaves);
-router.get('/', protect, getAllLeaves);
-router.put('/:id/approve', protect, approveLeave);
-router.put('/:id/reject', protect, rejectLeave);
+router.use(protect);
+
+router.post('/', requestLeave);
+router.get('/my', getMyLeaves);
+router.get('/balance', getLeaveBalance);
+router.get('/', getAllLeaves);
+router.put('/:id/approve', approveLeave);
+router.put('/:id/reject', rejectLeave);
 
 module.exports = router;

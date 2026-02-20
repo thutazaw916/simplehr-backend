@@ -4,36 +4,30 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 
 dotenv.config();
-
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 
-const authRoutes = require('./routes/authRoutes');
-const employeeRoutes = require('./routes/employeeRoutes');
-const departmentRoutes = require('./routes/departmentRoutes');
-const attendanceRoutes = require('./routes/attendanceRoutes');
-const leaveRoutes = require('./routes/leaveRoutes');
-const payrollRoutes = require('./routes/payrollRoutes');
-const subscriptionRoutes = require('./routes/subscriptionRoutes');
-
-app.use('/api/auth', authRoutes);
-app.use('/api/employees', employeeRoutes);
-app.use('/api/departments', departmentRoutes);
-app.use('/api/attendance', attendanceRoutes);
-app.use('/api/leaves', leaveRoutes);
-app.use('/api/payroll', payrollRoutes);
-app.use('/api/subscription', subscriptionRoutes);
+// Routes
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/employees', require('./routes/employeeRoutes'));
+app.use('/api/departments', require('./routes/departmentRoutes'));
+app.use('/api/attendance', require('./routes/attendanceRoutes'));
+app.use('/api/leaves', require('./routes/leaveRoutes'));
+app.use('/api/payroll', require('./routes/payrollRoutes'));
+app.use('/api/subscription', require('./routes/subscriptionRoutes'));
+app.use('/api/advance-salary', require('./routes/advanceSalaryRoutes'));
+app.use('/api/overtime', require('./routes/overtimeRoutes'));
+app.use('/api/payment-config', require('./routes/paymentConfigRoutes'));
+app.use('/api/analytics', require('./routes/analyticsRoutes'));
 
 app.get('/', (req, res) => {
-  res.json({ message: 'SimpleHR API is running!', version: '1.0.0' });
+  res.json({ message: 'SimpleHR Myanmar API', version: '2.2.0 Beta' });
 });
 
 const PORT = process.env.PORT || 5000;
-
 app.listen(PORT, async () => {
-  console.log(`SimpleHR Server is running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
   try {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('MongoDB Connected');

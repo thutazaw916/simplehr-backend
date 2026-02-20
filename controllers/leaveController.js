@@ -13,6 +13,32 @@ const requestLeave = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid date range' });
     }
 
+    // Check leave balance
+    const currentYear = new Date().getFullYear();
+    const yearStart = `${currentYear}-01-01`;
+    const yearEnd = `${currentYear}-12-31`;
+
+    const approvedLeaves = await Leave.find({
+      user: req.user._id,
+      status: 'approved',
+      startDate: { $gte: yearStart, $lte: yearEnd },
+      leaveType: leaveType
+    });
+
+    let usedDays = 0;
+    approvedLeaves.forEach(l => { usedDays += l.totalDays; });
+
+    // Myanmar Labor Law limits
+    const limits = { casual: 6, sick: 30, annual: 10 };
+    const limit = limits[leaveType];
+
+    if (limit && (usedDays + totalDays) > limit) {
+      return res.status(400).json({
+        success: false,
+        message: `${leaveType} leave limit exceeded. Used: ${usedDays}, Requesting: ${totalDays}, Max: ${limit}`
+      });
+    }
+
     const leave = await Leave.create({
       user: req.user._id,
       company: req.user.company,
@@ -44,6 +70,81 @@ const getMyLeaves = async (req, res) => {
       success: true,
       count: leaves.length,
       data: leaves
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
+// ခွင့်ရက်ကျန် (GET /api/leaves/balance)
+const getLeaveBalance = async (req, res) => {
+  try {
+    const currentYear = new Date().getFullYear();
+    const yearStart = `${currentYear}-01-01`;
+    const yearEnd = `${currentYear}-12-31`;
+
+    const approvedLeaves = await Leave.find({
+      user: req.user._id,
+      status: 'approved',
+      startDate: { $gte: yearStart, $lte: yearEnd }
+    });
+
+    let casualUsed = 0, sickUsed = 0, annualUsed = 0, unpaidUsed = 0, otherUsed = 0;
+
+    approvedLeaves.forEach(l => {
+      if (l.leaveType === 'casual') casualUsed += l.totalDays;
+      else if (l.leaveType === 'sick') sickUsed += l.totalDays;
+      else if (l.leaveType === 'annual') annualUsed += l.totalDays;
+      else if (l.leaveType === 'unpaid') unpaidUsed += l.totalDays;
+      else otherUsed += l.totalDays;
+    });
+
+    // Myanmar Labor Law Leave Entitlements
+    const casualTotal = 6;
+    const earnedTotal = 10;
+    const sickTotal = 30;
+    const maternityTotal = 98;  // 14 weeks
+    const paternityTotal = 15;
+
+    const balance = {
+      casual: {
+        total: casualTotal,
+        used: casualUsed,
+        remaining: Math.max(0, casualTotal - casualUsed)
+      },
+      earned: {
+        total: earnedTotal,
+        used: annualUsed,
+        remaining: Math.max(0, earnedTotal - annualUsed)
+      },
+      sick: {
+        total: sickTotal,
+        used: sickUsed,
+        remaining: Math.max(0, sickTotal - sickUsed)
+      },
+      maternity: {
+        total: maternityTotal,
+        used: 0,
+        remaining: maternityTotal
+      },
+      paternity: {
+        total: paternityTotal,
+        used: 0,
+        remaining: paternityTotal
+      },
+      unpaid: {
+        total: 0,
+        used: unpaidUsed,
+        remaining: 0
+      },
+      totalUsed: casualUsed + sickUsed + annualUsed + unpaidUsed + otherUsed,
+      totalRemaining: Math.max(0, casualTotal - casualUsed) + Math.max(0, earnedTotal - annualUsed) + Math.max(0, sickTotal - sickUsed),
+      year: currentYear
+    };
+
+    return res.json({
+      success: true,
+      data: balance
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Server error', error: error.message });
@@ -131,4 +232,4 @@ const rejectLeave = async (req, res) => {
   }
 };
 
-module.exports = { requestLeave, getMyLeaves, getAllLeaves, approveLeave, rejectLeave };
+module.exports = { requestLeave, getMyLeaves, getLeaveBalance, getAllLeaves, approveLeave, rejectLeave };

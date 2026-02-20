@@ -1,13 +1,15 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middleware/authMiddleware');
 const { generatePayroll, getPayrolls, getMyPayroll, getPayrollDetail, confirmPayroll, markAsPaid } = require('../controllers/payrollController');
-const { protect } = require('../middleware/auth');
 
-router.post('/generate', protect, generatePayroll);
-router.get('/', protect, getPayrolls);
-router.get('/my', protect, getMyPayroll);
-router.get('/:id', protect, getPayrollDetail);
-router.put('/:id/confirm', protect, confirmPayroll);
-router.put('/:id/pay', protect, markAsPaid);
+router.use(protect);
+
+router.post('/generate', generatePayroll);
+router.get('/', getPayrolls);
+router.get('/my', getMyPayroll);
+router.get('/:id', getPayrollDetail);
+router.put('/:id/confirm', confirmPayroll);
+router.put('/:id/pay', markAsPaid);
 
 module.exports = router;
