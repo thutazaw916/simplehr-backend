@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   phone: { type: String, required: true, unique: true },
-  password: { type: String, required: true, minlength: 6 },
+  password: { type: String, default: '' },
   role: { type: String, enum: ['owner', 'hr', 'employee'], default: 'employee' },
   position: { type: String, default: '' },
   department: { type: mongoose.Schema.Types.ObjectId, ref: 'Department' },
@@ -23,16 +23,25 @@ const userSchema = new mongoose.Schema({
     phone: { type: String, default: '' },
     relation: { type: String, default: '' }
   },
-  isActive: { type: Boolean, default: true }
+  accountStatus: {
+    type: String,
+    enum: ['active', 'pending', 'suspended', 'deleted'],
+    default: 'pending'
+  },
+  isActive: { type: Boolean, default: true },
+  lastLogin: { type: Date },
+  loginMethod: { type: String, enum: ['password', 'otp'], default: 'password' },
+  otpResendCooldown: { type: Date }
 }, { timestamps: true });
 
 userSchema.pre('save', async function () {
-  if (!this.isModified('password')) return;
+  if (!this.isModified('password') || !this.password) return;
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });
 
 userSchema.methods.matchPassword = async function (enteredPassword) {
+  if (!this.password) return false;
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
